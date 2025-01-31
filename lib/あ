@@ -1,0 +1,95 @@
+import 'package:flutter/material.dart';
+import 'package:nfc_manager/nfc_manager.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: MyHomePage(),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  List<String> _nfcDataList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    NfcManager.instance.isAvailable().then((isAvailable) {
+      if (!isAvailable) {
+        setState(() {
+          _nfcDataList.add('NFCがサポートされていません');
+        });
+      }
+    });
+  }
+
+  Future<void> _startNFCSession() async {
+    try {
+      bool isAvailable = await NfcManager.instance.isAvailable();
+      if (!isAvailable) {
+        setState(() {
+          _nfcDataList.add('NFCがサポートされていません');
+        });
+        return;
+      }
+
+      NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
+        setState(() {
+          _nfcDataList.add('NFCタグが読み取られました: ${tag.data}');
+        });
+        // セッションを終了せずに連続して読み取る
+      });
+    } catch (e) {
+      setState(() {
+        _nfcDataList.add('エラーが発生しました: $e');
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Flutter NFC Demo'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Expanded(
+              child: ListView.builder(
+                itemCount: _nfcDataList.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(_nfcDataList[index]),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _startNFCSession,
+              child: Text('NFCタグをスキャン'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
